@@ -6,9 +6,90 @@ Shows camera feed in one window and cumulative text in another.
 
 import cv2
 import numpy as np
-from typing import List, Optional
+from typing import List, Optional, Dict, Tuple
 import time
+import threading
 from PIL import Image, ImageDraw, ImageFont
+
+class TypingAnimation:
+    """Handles typing animation for captions"""
+    
+    def __init__(self, typing_delay: int, cursor_effect: str):
+        self.typing_delay = typing_delay
+        self.cursor_effect = cursor_effect
+        self.active_animations: Dict[int, Dict] = {}  # caption_id -> animation data
+        self.animation_id_counter = 0
+        
+    def start_typing(self, full_text: str, callback=None) -> int:
+        """Start typing animation for a text"""
+        animation_id = self.animation_id_counter
+        self.animation_id_counter += 1
+        
+        self.active_animations[animation_id] = {
+            'full_text': full_text,
+            'current_text': '',
+            'current_index': 0,
+            'start_time': time.time(),
+            'last_char_time': time.time(),
+            'callback': callback,
+            'completed': False
+        }
+        
+        return animation_id
+    
+    def update_animations(self) -> Dict[int, str]:
+        """Update all active animations and return current states"""
+        current_time = time.time()
+        results = {}
+        
+        for animation_id, animation_data in list(self.active_animations.items()):
+            if animation_data['completed']:
+                continue
+                
+            # Check if it's time to add next character
+            if current_time - animation_data['last_char_time'] >= self.typing_delay / 1000.0:
+                if animation_data['current_index'] < len(animation_data['full_text']):
+                    # Add next character
+                    animation_data['current_text'] += animation_data['full_text'][animation_data['current_index']]
+                    animation_data['current_index'] += 1
+                    animation_data['last_char_time'] = current_time
+                else:
+                    # Animation completed
+                    animation_data['completed'] = True
+                    if animation_data['callback']:
+                        animation_data['callback'](animation_data['full_text'])
+            
+            # Add cursor effect if enabled
+            display_text = animation_data['current_text']
+            if not animation_data['completed'] and self.cursor_effect != "none":
+                if self.cursor_effect == "blink":
+                    # Blinking cursor
+                    cursor_visible = int(current_time * 2) % 2 == 0
+                    if cursor_visible:
+                        display_text += "_"
+                elif self.cursor_effect == "highlight":
+                    # Highlight effect (bold or different color)
+                    display_text += "█"
+            
+            results[animation_id] = display_text
+        
+        # Clean up completed animations
+        self.active_animations = {k: v for k, v in self.active_animations.items() if not v['completed']}
+        
+        return results
+    
+    def get_animation_state(self, animation_id: int) -> Optional[str]:
+        """Get current state of specific animation"""
+        if animation_id in self.active_animations:
+            animation_data = self.active_animations[animation_id]
+            return animation_data['current_text']
+        return None
+    
+    def is_completed(self, animation_id: int) -> bool:
+        """Check if animation is completed"""
+        if animation_id in self.active_animations:
+            return self.active_animations[animation_id]['completed']
+        return True
 
 class DualScreenDisplay:
     """Manages dual screen display with camera and text windows"""
@@ -18,13 +99,31 @@ class DualScreenDisplay:
     # ================================
     WINDOW_WIDTH = 2560        # 화면 너비 (2K: 2560, 4K: 3840)
     WINDOW_HEIGHT = 1440       # 화면 높이 (2K: 1440, 4K: 2160)
-    FONT_SIZE = 24             # 글자 크기
-    FONT_PATH = "/Users/xavi/Desktop/real_code/2025ATC/assets/fonts/Acumin Variable Concept.ttf"
+    FONT_PATH = "/Users/xavi/Desktop/real_code/2025ATC/assets/fonts/Acumin_Variable_Concept.ttf"
+    FONT_PATH = None
+    
+    # 폰트 설정
+    FONT_SCALE = 2.0           # OpenCV 폰트 스케일 (1.0 = 기본, 2.0 = 2배)
     
     # 텍스트 레이아웃 설정
     COLUMN_WIDTH = 25          # 컬럼 간격 (가로 간격)
     CHAR_SPACING = 2           # 글자 간격 (세로 여백)
     MAX_CAPTIONS = 200         # 최대 저장 캡션 수
+    
+    # ================================
+    # TYPING ANIMATION SETTINGS - 타이핑 애니메이션 설정
+    # ================================
+    TYPING_ENABLED = True      # 타이핑 효과 활성화 (True/False)
+    TYPING_SPEED = "fast"    # 타이핑 속도 ("fast", "medium", "slow")
+    CURSOR_EFFECT = "blink"    # 커서 효과 ("blink", "highlight", "none")
+    ANIMATION_DURATION = 2.0   # 애니메이션 지속 시간 (초)
+    
+    # 타이핑 속도 설정 (밀리초)
+    TYPING_DELAYS = {
+        "fast": 50,      # 50ms per character
+        "medium": 100,   # 100ms per character  
+        "slow": 200      # 200ms per character
+    }
     
     # ================================
     
@@ -43,9 +142,20 @@ class DualScreenDisplay:
         # Window management
         self.window_capacity = 0  # 한 창당 최대 캡션 수
         
+        # Typing animation system
+        self.typing_enabled = self.TYPING_ENABLED
+        self.typing_animation = TypingAnimation(
+            typing_delay=self.TYPING_DELAYS.get(self.TYPING_SPEED, 100),
+            cursor_effect=self.CURSOR_EFFECT
+        )
+        
+        # Animation tracking
+        self.caption_animations: Dict[int, Dict] = {}  # caption_index -> animation_data
+        self.animation_counter = 0
+        
         # Font setup
         self.font_path = self.FONT_PATH
-        self.font_size = self.FONT_SIZE
+        self.font_scale = self.FONT_SCALE
         self.font = None
         self._load_font()
         
@@ -75,15 +185,21 @@ class DualScreenDisplay:
     def _load_font(self):
         """Load the custom font"""
         try:
-            self.font = ImageFont.truetype(self.font_path, self.font_size)
-            print(f"✅ Custom font loaded: {self.font_path}")
+            self.font = ImageFont.truetype(self.font_path, int(self.font_scale * 24))
+            print(f"Custom font loaded: {self.font_path} (scale: {self.font_scale})")
         except Exception as e:
-            print(f"⚠️  Could not load custom font: {e}")
-            print("📝 Using default font")
+            print(f"Could not load custom font: {e}")
+            print("Using default font")
             try:
                 self.font = ImageFont.load_default()
             except:
                 self.font = None
+    
+    def reload_font(self):
+        """Reload font with current settings"""
+        self.font_scale = self.FONT_SCALE
+        self._load_font()
+        print(f"Font reloaded with scale: {self.font_scale}")
         
     def display_camera_frame(self, frame, current_caption: str = ""):
         """Display camera frame with optional caption overlay"""
@@ -128,7 +244,17 @@ class DualScreenDisplay:
             self._calculate_window_capacity()
         
         # Add new caption to Window 1 (right side)
+        caption_index = len(self.window1_captions)
         self.window1_captions.append(caption)
+        
+        # Start typing animation for new caption if enabled
+        if self.typing_enabled:
+            animation_id = self.typing_animation.start_typing(caption)
+            self.caption_animations[caption_index] = {
+                'animation_id': animation_id,
+                'completed': False,
+                'window': 1
+            }
         
         # If Window 1 is full, move oldest caption to Window 2
         if len(self.window1_captions) > self.window_capacity:
@@ -136,16 +262,45 @@ class DualScreenDisplay:
             overflow_caption = self.window1_captions.pop(0)
             self.window2_captions.append(overflow_caption)
             
+            # Update animation tracking
+            if self.typing_enabled:
+                # Remove old animation data
+                old_animations = {k: v for k, v in self.caption_animations.items() if v['window'] == 1}
+                self.caption_animations = {k: v for k, v in self.caption_animations.items() if v['window'] != 1}
+                
+                # Add to window 2 with new index
+                new_index = len(self.window2_captions) - 1
+                if old_animations:
+                    # Move animation data to window 2
+                    for old_idx, anim_data in old_animations.items():
+                        self.caption_animations[new_index] = anim_data
+                        self.caption_animations[new_index]['window'] = 2
+            
             # If Window 2 is also full, remove oldest caption
             if len(self.window2_captions) > self.window_capacity:
                 self.window2_captions.pop(0)
+                # Clean up animation data
+                if self.typing_enabled:
+                    self.caption_animations = {k: v for k, v in self.caption_animations.items() if v['window'] != 2 or k < len(self.window2_captions)}
         
         self._update_text_display()
     
     def _calculate_window_capacity(self):
         """Calculate how many captions can fit in one text window"""
         column_width = self.COLUMN_WIDTH
-        char_height = self.font_size + self.CHAR_SPACING
+        
+        # Calculate actual character height based on font scale and spacing
+        if self.font:
+            # Get actual font height from the loaded font
+            try:
+                bbox = self.font.getbbox("Ag")  # Test with a character
+                font_height = bbox[3] - bbox[1]  # Bottom - Top
+            except:
+                font_height = int(self.font_scale * 24)  # Fallback to scaled font size
+        else:
+            font_height = int(self.font_scale * 24)  # Fallback to scaled font size
+        
+        char_height = font_height + self.CHAR_SPACING
         
         # Calculate how many columns can fit horizontally
         max_columns = (self.window_width - 40) // column_width
@@ -160,6 +315,10 @@ class DualScreenDisplay:
         
     def _update_text_display(self):
         """Update both text windows with vertical Chinese-style layout"""
+        # Update typing animations
+        if self.typing_enabled:
+            self.typing_animation.update_animations()
+        
         # Update Window 1
         self._update_single_window(self.window1_captions, 0)
         
@@ -175,7 +334,19 @@ class DualScreenDisplay:
         if captions:
             # Calculate layout - 실시간으로 설정값 사용
             column_width = self.COLUMN_WIDTH
-            char_height = self.font_size + self.CHAR_SPACING
+            
+            # Calculate actual character height based on font scale and spacing
+            if self.font:
+                # Get actual font height from the loaded font
+                try:
+                    bbox = self.font.getbbox("Ag")  # Test with a character
+                    font_height = bbox[3] - bbox[1]  # Bottom - Top
+                except:
+                    font_height = int(self.font_scale * 24)  # Fallback to scaled font size
+            else:
+                font_height = int(self.font_scale * 24)  # Fallback to scaled font size
+            
+            char_height = font_height + self.CHAR_SPACING
             
             # Calculate how many characters can fit in each column (full height)
             max_chars_per_column = (self.window_height - 40) // char_height
@@ -197,7 +368,18 @@ class DualScreenDisplay:
             current_column = 0
             
             # Process each caption as a separate column (newest first)
-            for caption in reversed(visible_captions):
+            for i, caption in enumerate(reversed(visible_captions)):
+                # Get typing animation state if available
+                if self.typing_enabled:
+                    caption_index = len(captions) - 1 - i
+                    if caption_index in self.caption_animations:
+                        anim_data = self.caption_animations[caption_index]
+                        if not anim_data['completed']:
+                            # Use animated text
+                            animated_text = self.typing_animation.get_animation_state(anim_data['animation_id'])
+                            if animated_text:
+                                caption = animated_text
+                
                 # Replace spaces with hyphens
                 caption_text = caption.replace(" ", "-")
                 chars = list(caption_text)
@@ -270,6 +452,29 @@ class DualScreenDisplay:
         """Check if user wants to quit (pressed 'q' in either window)"""
         key = cv2.waitKey(1) & 0xFF
         return key == ord('q')
+    
+    def update_typing_animations(self):
+        """Update typing animations and refresh display if needed"""
+        if self.typing_enabled:
+            # Update animations
+            animation_states = self.typing_animation.update_animations()
+            
+            # Check if any animations are still active
+            has_active_animations = len(self.typing_animation.active_animations) > 0
+            
+            if has_active_animations:
+                # Refresh display to show updated animations
+                self._update_text_display()
+                return True  # Indicates animations are still active
+            
+            # Mark completed animations
+            for caption_index, anim_data in list(self.caption_animations.items()):
+                if not anim_data['completed']:
+                    animation_id = anim_data['animation_id']
+                    if self.typing_animation.is_completed(animation_id):
+                        anim_data['completed'] = True
+        
+        return False  # No active animations
         
     def cleanup(self):
         """Clean up windows and resources"""

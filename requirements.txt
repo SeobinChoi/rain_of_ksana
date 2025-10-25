@@ -1,4 +1,5 @@
-# Core ML Libraries
+# Core ML Libraries with CUDA support
+--index-url https://download.pytorch.org/whl/cu121
 torch>=2.0.0
 torchvision>=0.15.0
 torchaudio>=2.0.0

@@ -23,24 +23,27 @@
 
 ### 1. 가상환경 활성화
 ```bash
+python -m venv venv
+Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy RemoteSigned -Force
+.\venv\Scripts\Activate.ps1
 source blip_env/bin/activate
 ```
 
 ### 2. 기본 실행 (듀얼 스크린)
 ```bash
-python blip_camera_main.py --dual-screen --interval 3
+python main.py --dual-screen --interval 3
 ```
 
 ### 3. 다른 실행 옵션
 ```bash
-# BLIP-2 모델 사용 (더 정확하지만 느림)
-python blip_camera_main.py --dual-screen --blip2 --interval 5
+# BLIP-2 모델 사용 (GPU 가속으로 빠름)
+python main.py --dual-screen --blip2 --interval 5
 
 # 단일 카메라 창만 표시
-python blip_camera_main.py --show-camera --interval 3
+python main.py --show-camera --interval 3
 
 # 시스템 상태 확인
-python blip_camera_main.py --status
+python main.py --status
 ```
 
 ## ⚙️ 설정 조정

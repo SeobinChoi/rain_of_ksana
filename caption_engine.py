@@ -8,6 +8,7 @@ import time
 import os
 from typing import Optional
 from blip_model import BLIPModelManager
+from blip2_model import BLIP2ModelManager
 from camera_manager import CameraManager
 from dual_screen_display import DualScreenDisplay
 
@@ -15,16 +16,20 @@ class CaptionEngine:
     """Main engine for BLIP camera captioning"""
     
     def __init__(self, model_name="Salesforce/blip-image-captioning-base", 
-                 camera_index=0, show_camera=False, interval=5, dual_screen=False):
+                 camera_index=0, show_camera=False, interval=5, dual_screen=False, backend: str = "auto"):
         self.model_name = model_name
         self.camera_index = camera_index
         self.show_camera = show_camera
         self.interval = interval
         self.dual_screen = dual_screen
+        self.backend = backend
         
-        # Initialize managers
-        self.blip_manager = BLIPModelManager(model_name)
-        self.camera_manager = CameraManager(camera_index, show_camera and not dual_screen)
+        # Initialize managers - choose BLIP or BLIP-2 based on model name
+        if "blip2" in model_name.lower():
+            self.model_manager = BLIP2ModelManager(model_name)
+        else:
+            self.model_manager = BLIPModelManager(model_name)
+        self.camera_manager = CameraManager(camera_index, show_camera and not dual_screen, backend=self.backend)
         
         # Initialize dual screen display if requested
         if dual_screen:
@@ -41,8 +46,8 @@ class CaptionEngine:
         """Initialize the caption engine"""
         print(f"🤖 Using BLIP model: {self.model_name}")
         
-        # Load BLIP model
-        if not self.blip_manager.load_model():
+        # Load model (BLIP or BLIP-2)
+        if not self.model_manager.load_model():
             return False
         
         # Initialize camera
@@ -79,6 +84,9 @@ class CaptionEngine:
                         current_caption = self.last_generated_caption
                     self.display.display_camera_frame(frame, current_caption)
                     
+                    # Update typing animations
+                    self.display.update_typing_animations()
+                    
                     # Check for quit request
                     if self.display.check_for_quit():
                         print("\n🛑 Quit requested via display window")
@@ -99,7 +107,7 @@ class CaptionEngine:
                     timestamp = time.strftime("%H:%M:%S")
                     print(f"🔄 [{timestamp}] Processing frame...")
                     
-                    caption = self.blip_manager.generate_caption(frame)
+                    caption = self.model_manager.generate_caption(frame)
                     print(f"📝 [{timestamp}] {caption}\n")
                     
                     # Store caption for display
@@ -133,7 +141,7 @@ class CaptionEngine:
     def get_status(self):
         """Get current status of the engine"""
         return {
-            "model_info": self.blip_manager.get_model_info(),
+            "model_info": self.model_manager.get_model_info(),
             "camera_info": self.camera_manager.get_camera_info(),
             "settings": {
                 "interval": self.interval,
