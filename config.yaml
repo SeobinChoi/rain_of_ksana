@@ -1,0 +1,30 @@
+camera:
+  backend: auto
+  index: 0
+  show_camera: true
+display:
+  char_spacing: 2
+  column_width: 10
+  font_path: assets/fonts/Acumin_Variable_Concept.ttf
+  font_size: 48
+  text_screen_count: 3
+  typing_speed: 0.03
+  window_height: 1440
+  window_width: 2560
+model:
+  type: blip2
+  use_gpu: auto
+ollama:
+  base_url: http://localhost:11434
+  enabled: true
+  model: llama3.2:3b
+  prompt_template: 'Summarize the following scene descriptions into one coherent narrative
+    sentence. Consider the time order and describe it like a story:
+
+
+    {captions}'
+  timeout: 30
+timing:
+  dual_interval_mode: true
+  interval_long: 30
+  interval_short: 5
