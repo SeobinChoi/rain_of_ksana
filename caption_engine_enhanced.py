@@ -11,7 +11,7 @@ from typing import Optional, Dict, Any
 from blip_model import BLIPModelManager
 from blip2_model import BLIP2ModelManager
 from camera_manager import CameraManager
-from multi_screen_display_fixed import CascadingMultiScreenDisplay as MultiScreenDisplay
+from cascading_screen_display import CascadingScreenDisplay as MultiScreenDisplay
 from caption_buffer import CaptionBuffer, DualIntervalManager
 from ollama_integration import OllamaIntegration, create_ollama_from_config
 

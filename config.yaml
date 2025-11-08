@@ -6,11 +6,13 @@ display:
   char_spacing: 2
   column_width: 10
   font_path: assets/fonts/Acumin_Variable_Concept.ttf
-  font_size: 48
+  font_size: 24
   text_screen_count: 3
-  typing_speed: 0.1
+  typing_speed: 0.03
   window_height: 1440
   window_width: 2560
+  truncate_long_captions: false
+  max_caption_length: 100
 model:
   type: blip
   use_gpu: auto
@@ -25,6 +27,6 @@ ollama:
     {captions}'
   timeout: 30
 timing:
-  dual_interval_mode: true
+  dual_interval_mode: false
   interval_long: 20
   interval_short: 5

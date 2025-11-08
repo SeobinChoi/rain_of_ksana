@@ -11,6 +11,8 @@ display:
   typing_speed: 0.03              # Typing animation speed (0.01-0.1, lower is faster)
   column_width: 10                # Column spacing (horizontal gap)
   char_spacing: 2                 # Character spacing (vertical gap)
+  truncate_long_captions: false   # Truncate long captions (true) or wrap to multiple columns (false)
+  max_caption_length: 100         # Maximum caption length before truncation (if truncate enabled)
 
 # Model Settings
 model:
