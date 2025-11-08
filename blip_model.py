@@ -45,11 +45,12 @@ class BLIPModelManager:
             )
             
             # Load model with appropriate settings for GPU acceleration
+            model_dtype = torch.float16 if self.device in ["mps", "cuda"] else torch.float32
             self.model = BlipForConditionalGeneration.from_pretrained(
                 self.model_name,
-                torch_dtype=torch.float16 if self.device in ["mps", "cuda"] else torch.float32,
+                torch_dtype=model_dtype,
                 use_safetensors=True
-            )
+            ).to(dtype=model_dtype)
             
             # Move model to GPU if available
             if self.device == "cuda":
