@@ -1,14 +1,14 @@
 camera:
   backend: auto
   index: 0
-  show_camera: false
+  show_camera: true
 display:
   char_spacing: 2
   column_width: 10
   font_path: assets/fonts/Acumin_Variable_Concept.ttf
-  font_size: 24
-  text_screen_count: 1
-  typing_speed: 0.03
+  font_size: 48
+  text_screen_count: 3
+  typing_speed: 0.1
   window_height: 1440
   window_width: 2560
 model:
@@ -25,6 +25,6 @@ ollama:
     {captions}'
   timeout: 30
 timing:
-  dual_interval_mode: false
-  interval_long: 30
+  dual_interval_mode: true
+  interval_long: 20
   interval_short: 5
