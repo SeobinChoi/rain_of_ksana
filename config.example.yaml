@@ -1,0 +1,42 @@
+# BLIP Camera Captioning - Example Configuration
+# Copy this file to config.yaml and customize as needed
+
+# Display Settings
+display:
+  text_screen_count: 3           # Number of text screens (1-3)
+  window_width: 2560              # Window width in pixels
+  window_height: 1440             # Window height in pixels
+  font_size: 24                   # Font size (12-48)
+  font_path: "assets/fonts/Acumin_Variable_Concept.ttf"  # Path to custom font
+  typing_speed: 0.03              # Typing animation speed (0.01-0.1, lower is faster)
+  column_width: 10                # Column spacing (horizontal gap)
+  char_spacing: 2                 # Character spacing (vertical gap)
+
+# Model Settings
+model:
+  type: "blip"                    # "blip" (fast) or "blip2" (accurate)
+  use_gpu: "auto"                 # "auto", true, or false
+
+# Camera Settings
+camera:
+  index: 0                        # Camera index (0 for default)
+  backend: "auto"                 # Camera backend: auto, dshow, msmf, etc.
+  show_camera: true               # Show camera feed window
+
+# Timing Settings
+timing:
+  dual_interval_mode: true        # Enable dual-interval mode
+  interval_short: 3               # Short interval for caption generation (seconds)
+  interval_long: 30               # Long interval for text summarization (seconds)
+
+# Ollama Settings (for text summarization in dual-interval mode)
+ollama:
+  enabled: true                   # Enable Ollama integration
+  model: "llama3.2:3b"            # Ollama model: llama3.2:3b, llama3.1:8b, qwen2.5:7b
+  base_url: "http://localhost:11434"  # Ollama server URL
+  timeout: 30                     # Request timeout in seconds
+  prompt_template: |
+    Summarize the following scene descriptions into one coherent narrative sentence.
+    Consider the time order and describe it like a story:
+
+    {captions}
