@@ -24,12 +24,14 @@ MANIFEST
 # Virtual Environment
 blip_env/
 venv/
+venv_gpu/
 env/
 ENV/
 
 # IDE
 .vscode/
 .idea/
+.claude/
 *.swp
 *.swo
 *~
