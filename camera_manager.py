@@ -89,17 +89,34 @@ class CameraManager:
         
         if caption:
             self.current_caption = caption
-            # Add caption text to the frame
-            cv2.putText(
-                display_frame, 
-                caption, 
-                (10, 30), 
-                cv2.FONT_HERSHEY_SIMPLEX, 
-                0.7, 
-                (0, 255, 0), 
-                2
-            )
-        
+            font = cv2.FONT_HERSHEY_SIMPLEX
+            font_scale = 2
+            thickness = 2
+            color = (0, 200, 100)
+            lines = caption.splitlines() or [caption]
+
+            height, width = display_frame.shape[:2]
+            _, text_height = cv2.getTextSize("Ag", font, font_scale, thickness)[0]
+            line_spacing = text_height + 10
+            total_text_height = line_spacing * len(lines)
+            start_y = max((height - total_text_height) // 2 + text_height, text_height)
+
+            for idx, line in enumerate(lines):
+                text_size = cv2.getTextSize(line, font, font_scale, thickness)[0]
+                text_width = text_size[0]
+                x = max((width - text_width) // 2, 10)
+                y = start_y + idx * line_spacing
+                cv2.putText(
+                    display_frame,
+                    line,
+                    (x, y),
+                    font,
+                    font_scale,
+                    color,
+                    thickness,
+                    cv2.LINE_AA,
+                )
+
         cv2.imshow('BLIP Camera Captioning', display_frame)
     
     def check_for_quit(self) -> bool:

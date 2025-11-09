@@ -7,6 +7,7 @@ New captions appear on RIGHT, old columns shift LEFT across screens.
 import cv2
 import numpy as np
 import time
+import textwrap
 from typing import List, Optional, Dict
 from PIL import Image, ImageDraw, ImageFont
 from pathlib import Path
@@ -273,8 +274,37 @@ class CascadingScreenDisplay:
         display_frame = cv2.resize(frame, (1280, 720))
 
         if current_caption:
-            cv2.putText(display_frame, current_caption[:50], (10, 30),
-                       cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 0), 2)
+            font = cv2.FONT_HERSHEY_SIMPLEX
+            font_scale = 0.7
+            thickness = 2
+            color = (0, 255, 0)
+
+            if "\n" in current_caption:
+                lines = current_caption.splitlines()
+            else:
+                lines = textwrap.wrap(current_caption, width=50) or [current_caption]
+
+            height, width = display_frame.shape[:2]
+            _, text_height = cv2.getTextSize("Ag", font, font_scale, thickness)[0]
+            line_spacing = text_height + 8
+            total_text_height = line_spacing * len(lines)
+            start_y = max((height - total_text_height) // 2 + text_height, text_height)
+
+            for idx, line in enumerate(lines):
+                text_size = cv2.getTextSize(line, font, font_scale, thickness)[0]
+                text_width = text_size[0]
+                x = max((width - text_width) // 2, 10)
+                y = start_y + idx * line_spacing
+                cv2.putText(
+                    display_frame,
+                    line,
+                    (x, y),
+                    font,
+                    font_scale,
+                    color,
+                    thickness,
+                    cv2.LINE_AA,
+                )
 
         cv2.imshow(self.camera_window_name, display_frame)
 

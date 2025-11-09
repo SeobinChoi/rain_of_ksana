@@ -6,13 +6,13 @@ display:
   char_spacing: 2
   column_width: 10
   font_path: assets/fonts/Acumin_Variable_Concept.ttf
-  font_size: 24
-  text_screen_count: 3
+  font_size: 12
+  max_caption_length: 100
+  text_screen_count: 1
+  truncate_long_captions: false
   typing_speed: 0.03
   window_height: 1440
   window_width: 2560
-  truncate_long_captions: false
-  max_caption_length: 100
 model:
   type: blip
   use_gpu: auto
