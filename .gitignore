@@ -56,3 +56,4 @@ temp_log.txt
 # Model cache (optional - uncomment if you want to exclude downloaded models)
 # .cache/
 # models/
+config.yaml
