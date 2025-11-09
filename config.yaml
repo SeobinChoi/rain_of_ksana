@@ -8,7 +8,11 @@ display:
   font_path: assets/fonts/Acumin_Variable_Concept.ttf
   font_size: 12
   max_caption_length: 100
+<<<<<<< Updated upstream
   text_screen_count: 1
+=======
+  text_screen_count: 3
+>>>>>>> Stashed changes
   truncate_long_captions: false
   typing_speed: 0.03
   window_height: 1440
@@ -29,4 +33,4 @@ ollama:
 timing:
   dual_interval_mode: false
   interval_long: 20
-  interval_short: 5
+  interval_short: 10
