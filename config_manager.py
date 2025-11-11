@@ -23,7 +23,8 @@ class ConfigManager:
             "font_path": "assets/fonts/Acumin_Variable_Concept.ttf",
             "typing_speed": 0.03,
             "column_width": 10,
-            "char_spacing": 2
+            "char_spacing": 2,
+            "theme": "dark"
         },
         "model": {
             "type": "blip",  # blip or blip2
@@ -136,6 +137,17 @@ class ConfigManager:
             max_val=0.1
         )
         self.config["display"]["typing_speed"] = typing_speed
+
+        theme = self._ask_choice(
+            "Select display theme",
+            choices=["dark", "white"],
+            default="dark",
+            descriptions={
+                "dark": "Black background with white text",
+                "white": "White background with black text"
+            }
+        )
+        self.config["display"]["theme"] = theme
 
         # Model settings
         print("\n🤖 Model Settings")
