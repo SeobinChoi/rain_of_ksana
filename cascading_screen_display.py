@@ -63,11 +63,14 @@ class CascadingScreenDisplay:
         self.rain_size = rain_config.get("rain_size", 1)
         self.rain_frequency = rain_config.get("rain_frequency", 0.1)
 
-        # Rain effect state: {column_index: [(position, size, direction)]}
-        # position = character index where rain currently is
-        # size = number of blancs
-        # direction = 1 (downward/forward only - rain falls from top to bottom)
+        # Rain effect state
+        # For rain_effect_1: {column_index: [(position, size, direction)]}
+        # For rain_effect_2: {column_index: {'head_pos': int, 'trail_length': int, 'speed': int}}
         self.rain_drops = {}
+
+        # Rain effect 2 specific: character cycling state
+        self.rain_chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789@#$%^&*()_+-=[]{}|;:,.<>?/"
+        self.rain_frame_counter = 0
 
         # Load font
         self.font = self._load_font()
@@ -212,10 +215,17 @@ class CascadingScreenDisplay:
             self.typing_state["last_update"] = current_time
 
     def update_rain_effect(self):
-        """Update rain effect animation (rain_effect_1: moving blanc)"""
-        if not self.rain_enabled or self.rain_type != "rain_effect_1":
+        """Update rain effect animation"""
+        if not self.rain_enabled:
             return
 
+        if self.rain_type == "rain_effect_1":
+            self._update_rain_effect_1()
+        elif self.rain_type == "rain_effect_2":
+            self._update_rain_effect_2()
+
+    def _update_rain_effect_1(self):
+        """Rain effect 1: moving blanc through text"""
         # Create new rain drops randomly
         for col_idx in range(len(self.columns)):
             if random.random() < self.rain_frequency:
@@ -260,6 +270,46 @@ class CascadingScreenDisplay:
             else:
                 del self.rain_drops[col_idx]
 
+    def _update_rain_effect_2(self):
+        """Rain effect 2: Matrix-style cascading characters with trails"""
+        self.rain_frame_counter += 1
+
+        # Create new rain streams randomly
+        for col_idx in range(len(self.columns)):
+            if random.random() < self.rain_frequency:
+                column_text = self.columns[col_idx]
+                if len(column_text) > 3:
+                    # Only create if column doesn't already have rain
+                    if col_idx not in self.rain_drops:
+                        self.rain_drops[col_idx] = {
+                            'head_pos': 0,  # Start at top
+                            'trail_length': random.randint(3, min(15, len(column_text) // 2)),
+                            'speed': random.randint(1, 2),  # Characters to move per update
+                            'char_cycle': [random.choice(self.rain_chars) for _ in range(len(column_text))]
+                        }
+
+        # Update existing rain streams
+        for col_idx in list(self.rain_drops.keys()):
+            if col_idx >= len(self.columns):
+                del self.rain_drops[col_idx]
+                continue
+
+            column_text = self.columns[col_idx]
+            stream = self.rain_drops[col_idx]
+
+            # Move the rain head downward
+            stream['head_pos'] += stream['speed']
+
+            # Cycle characters randomly for dynamic effect
+            if self.rain_frame_counter % 3 == 0:
+                for i in range(len(stream['char_cycle'])):
+                    if random.random() < 0.1:  # 10% chance to change
+                        stream['char_cycle'][i] = random.choice(self.rain_chars)
+
+            # Remove stream if it has completely passed through
+            if stream['head_pos'] - stream['trail_length'] >= len(column_text):
+                del self.rain_drops[col_idx]
+
     def _get_column_text(self, column_index: int) -> str:
         """Get the text for a specific column, with typing effect and rain effect"""
         if column_index >= len(self.columns):
@@ -277,23 +327,42 @@ class CascadingScreenDisplay:
                 if int(time.time() * 2) % 2 == 0:
                     column_text += "█"
 
-        # Apply rain effect (moving blanc)
-        if self.rain_enabled and self.rain_type == "rain_effect_1":
-            if column_index in self.rain_drops:
-                # Convert to list for easier manipulation
-                text_chars = list(column_text)
+        # Apply rain effects
+        if self.rain_enabled:
+            if self.rain_type == "rain_effect_1":
+                # Rain effect 1: moving blanc
+                if column_index in self.rain_drops:
+                    text_chars = list(column_text)
 
-                # Apply all rain drops to this column
-                for drop in self.rain_drops[column_index]:
-                    pos = drop['position']
-                    size = drop['size']
+                    # Apply all rain drops to this column
+                    for drop in self.rain_drops[column_index]:
+                        pos = drop['position']
+                        size = drop['size']
 
-                    # Replace characters with spaces (blanc)
-                    for i in range(size):
-                        if 0 <= pos + i < len(text_chars):
-                            text_chars[pos + i] = ' '
+                        # Replace characters with spaces (blanc)
+                        for i in range(size):
+                            if 0 <= pos + i < len(text_chars):
+                                text_chars[pos + i] = ' '
 
-                column_text = ''.join(text_chars)
+                    column_text = ''.join(text_chars)
+
+            elif self.rain_type == "rain_effect_2":
+                # Rain effect 2: Matrix-style cascading characters
+                if column_index in self.rain_drops:
+                    stream = self.rain_drops[column_index]
+                    text_chars = list(column_text)
+                    head_pos = stream['head_pos']
+                    trail_length = stream['trail_length']
+                    char_cycle = stream['char_cycle']
+
+                    # Replace characters in the rain trail with random cycling chars
+                    for i in range(len(text_chars)):
+                        # Check if position is within the rain trail
+                        if head_pos - trail_length <= i <= head_pos:
+                            if i < len(char_cycle):
+                                text_chars[i] = char_cycle[i]
+
+                    column_text = ''.join(text_chars)
 
         return column_text
 

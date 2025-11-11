@@ -98,8 +98,14 @@ rain_of_ksana/
 - `--interactive` 모드에서 비 효과 활성화 및 설정 가능
 - **rain_effect_1**: 텍스트를 통과하는 이동하는 공백 (moving blanc)
   - 단어가 `word` → `ord` → `w rd` → `wo d` → `wor` → `word` 처럼 변화
-  - 비 크기 (rain_size): 연속된 공백의 개수 (1-5)
-  - 비 빈도 (rain_frequency): 프레임당 열당 확률 (0.01-1.0, 높을수록 비가 많음)
+  - 위에서 아래로 내려가는 비 효과
+- **rain_effect_2**: Matrix 스타일 캐스케이딩 문자 (Matrix-style cascading characters)
+  - 무작위 문자가 연속으로 흘러내리는 효과
+  - 문자가 위에서 아래로 떨어지면서 계속 변화
+  - 긴 꼬리를 가진 문자 스트림
+- **설정**:
+  - 비 크기 (rain_size): 1-5
+  - 비 빈도 (rain_frequency): 0.01-1.0 (높을수록 비가 많음)
 
 ## 기술 스택
 

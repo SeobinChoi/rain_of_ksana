@@ -160,14 +160,25 @@ class ConfigManager:
         print("-" * 60)
 
         enable_rain = self._ask_bool(
-            "Enable rain effect (moving blanc through text)",
+            "Enable rain effect",
             default=False
         )
         self.config["rain_effect"]["enabled"] = enable_rain
 
         if enable_rain:
+            rain_type = self._ask_choice(
+                "Select rain effect type",
+                choices=["rain_effect_1", "rain_effect_2"],
+                default="rain_effect_1",
+                descriptions={
+                    "rain_effect_1": "Moving blanc through text (word → ord → w rd)",
+                    "rain_effect_2": "Matrix-style cascading characters with trails"
+                }
+            )
+            self.config["rain_effect"]["type"] = rain_type
+
             rain_size = self._ask_int(
-                "Rain size (number of consecutive blancs: 1-5)",
+                "Rain size (1-5)",
                 default=1,
                 min_val=1,
                 max_val=5
