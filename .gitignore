@@ -53,7 +53,10 @@ temp_log.txt
 *.tmp
 *.temp
 
-# Model cache (optional - uncomment if you want to exclude downloaded models)
+# Model cache (downloaded Hugging Face models - too large for git)
+models_cache/
 # .cache/
 # models/
+
+# User config file
 config.yaml
