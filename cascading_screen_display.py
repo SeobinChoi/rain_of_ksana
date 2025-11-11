@@ -39,6 +39,17 @@ class CascadingScreenDisplay:
         self.typing_speed = display_config.get("typing_speed", 0.03)
         self.column_width = display_config.get("column_width", 10)
         self.char_spacing = display_config.get("char_spacing", 2)
+        self.theme = display_config.get("theme", "dark")
+
+        # Set theme colors
+        if self.theme == "white" or self.theme == "light":
+            self.bg_color = (255, 255, 255)  # white background
+            self.text_color = (0, 0, 0)      # black text
+            print(f"🎨 Using LIGHT theme (theme={self.theme})")
+        else:  # default to dark theme
+            self.bg_color = (0, 0, 0)        # black background
+            self.text_color = (255, 255, 255) # white text
+            print(f"🎨 Using DARK theme (theme={self.theme})")
 
         # NEW: Truncate long captions or wrap to multiple columns
         self.truncate_long_captions = display_config.get("truncate_long_captions", False)
@@ -214,7 +225,7 @@ class CascadingScreenDisplay:
         - Screen 2 has older columns
         - Screen 3 has the oldest columns
         """
-        img = Image.new('RGB', (self.window_width, self.window_height), color=(0, 0, 0))
+        img = Image.new('RGB', (self.window_width, self.window_height), color=self.bg_color)
         draw = ImageDraw.Draw(img)
 
         # Calculate which columns belong to this screen
@@ -249,7 +260,7 @@ class CascadingScreenDisplay:
             y = 50
             for char in column_text:
                 if self.font:
-                    draw.text((x, y), char, font=self.font, fill=(255, 255, 255))
+                    draw.text((x, y), char, font=self.font, fill=self.text_color)
                 y += self.font_size + self.char_spacing
 
                 # Stop if we run out of vertical space

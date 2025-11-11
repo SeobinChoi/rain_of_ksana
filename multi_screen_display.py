@@ -40,12 +40,14 @@ class CascadingMultiScreenDisplay:
         self.theme = display_config.get("theme", "dark")
 
         # Set theme colors
-        if self.theme == "white":
+        if self.theme == "white" or self.theme == "light":
             self.bg_color = (255, 255, 255)  # white background
             self.text_color = (0, 0, 0)      # black text
+            print(f"🎨 Using LIGHT theme (theme={self.theme})")
         else:  # default to dark theme
             self.bg_color = (0, 0, 0)        # black background
             self.text_color = (255, 255, 255) # white text
+            print(f"🎨 Using DARK theme (theme={self.theme})")
 
         # Load font
         self.font = self._load_font()
