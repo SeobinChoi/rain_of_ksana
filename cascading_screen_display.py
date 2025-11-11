@@ -8,6 +8,7 @@ import cv2
 import numpy as np
 import time
 import textwrap
+import random
 from typing import List, Optional, Dict
 from PIL import Image, ImageDraw, ImageFont
 from pathlib import Path
@@ -55,6 +56,19 @@ class CascadingScreenDisplay:
         self.truncate_long_captions = display_config.get("truncate_long_captions", False)
         self.max_caption_length = display_config.get("max_caption_length", 100)
 
+        # Rain effect configuration
+        rain_config = self.config.get("rain_effect", {})
+        self.rain_enabled = rain_config.get("enabled", False)
+        self.rain_type = rain_config.get("type", "rain_effect_1")
+        self.rain_size = rain_config.get("rain_size", 1)
+        self.rain_frequency = rain_config.get("rain_frequency", 0.1)
+
+        # Rain effect state: {column_index: [(position, size, direction)]}
+        # position = character index where rain currently is
+        # size = number of blancs
+        # direction = 1 (downward/forward only - rain falls from top to bottom)
+        self.rain_drops = {}
+
         # Load font
         self.font = self._load_font()
 
@@ -93,6 +107,9 @@ class CascadingScreenDisplay:
         print(f"   Columns per screen: {self.columns_per_screen}")
         print(f"   Total columns: {self.columns_per_screen * screen_count}")
         print(f"   Truncate long captions: {self.truncate_long_captions}")
+        if self.rain_enabled:
+            print(f"   🌧️  Rain effect enabled: {self.rain_type}")
+            print(f"   🌧️  Rain size: {self.rain_size}, frequency: {self.rain_frequency}")
 
     def _load_font(self):
         """Load custom font or fall back to default"""
@@ -194,8 +211,57 @@ class CascadingScreenDisplay:
             self.typing_state["revealed_chars"] += 1
             self.typing_state["last_update"] = current_time
 
+    def update_rain_effect(self):
+        """Update rain effect animation (rain_effect_1: moving blanc)"""
+        if not self.rain_enabled or self.rain_type != "rain_effect_1":
+            return
+
+        # Create new rain drops randomly
+        for col_idx in range(len(self.columns)):
+            if random.random() < self.rain_frequency:
+                # Create a new rain drop for this column
+                column_text = self.columns[col_idx]
+                if len(column_text) > self.rain_size:
+                    # Start at the top (position 0) and move downward
+                    start_pos = 0
+                    # Direction: 1 = downward (top to bottom)
+                    direction = 1
+
+                    if col_idx not in self.rain_drops:
+                        self.rain_drops[col_idx] = []
+
+                    self.rain_drops[col_idx].append({
+                        'position': start_pos,
+                        'size': self.rain_size,
+                        'direction': direction
+                    })
+
+        # Update existing rain drops
+        for col_idx in list(self.rain_drops.keys()):
+            if col_idx >= len(self.columns):
+                # Column no longer exists
+                del self.rain_drops[col_idx]
+                continue
+
+            column_text = self.columns[col_idx]
+            updated_drops = []
+
+            for drop in self.rain_drops[col_idx]:
+                # Move rain drop
+                drop['position'] += drop['direction']
+
+                # Keep drop if still within bounds
+                if 0 <= drop['position'] < len(column_text):
+                    updated_drops.append(drop)
+                # Otherwise, rain drop has passed through and disappears
+
+            if updated_drops:
+                self.rain_drops[col_idx] = updated_drops
+            else:
+                del self.rain_drops[col_idx]
+
     def _get_column_text(self, column_index: int) -> str:
-        """Get the text for a specific column, with typing effect for newest"""
+        """Get the text for a specific column, with typing effect and rain effect"""
         if column_index >= len(self.columns):
             return ""
 
@@ -204,16 +270,32 @@ class CascadingScreenDisplay:
         # Apply typing effect ONLY to the newest column (last one)
         if column_index == len(self.columns) - 1 and self.typing_state["active"]:
             revealed_chars = self.typing_state["revealed_chars"]
-            displayed_text = column_text[:revealed_chars]
+            column_text = column_text[:revealed_chars]
 
             # Add blinking cursor
-            if revealed_chars < len(column_text):
+            if revealed_chars < len(self.columns[column_index]):
                 if int(time.time() * 2) % 2 == 0:
-                    displayed_text += "█"
+                    column_text += "█"
 
-            return displayed_text
-        else:
-            return column_text
+        # Apply rain effect (moving blanc)
+        if self.rain_enabled and self.rain_type == "rain_effect_1":
+            if column_index in self.rain_drops:
+                # Convert to list for easier manipulation
+                text_chars = list(column_text)
+
+                # Apply all rain drops to this column
+                for drop in self.rain_drops[column_index]:
+                    pos = drop['position']
+                    size = drop['size']
+
+                    # Replace characters with spaces (blanc)
+                    for i in range(size):
+                        if 0 <= pos + i < len(text_chars):
+                            text_chars[pos + i] = ' '
+
+                column_text = ''.join(text_chars)
+
+        return column_text
 
     def _render_screen(self, screen_index: int) -> np.ndarray:
         """
@@ -271,6 +353,9 @@ class CascadingScreenDisplay:
 
     def update_all_screens(self):
         """Update and display all screens"""
+        # Update rain effect animation
+        self.update_rain_effect()
+
         for screen_idx, window_name in enumerate(self.windows):
             frame = self._render_screen(screen_idx)
             cv2.imshow(window_name, frame)

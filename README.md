@@ -94,6 +94,13 @@ rain_of_ksana/
 - 다크 모드: 검은 배경, 흰 글자
 - 라이트 모드: 흰 배경, 검은 글자
 
+### 비 효과 (Rain Effect)
+- `--interactive` 모드에서 비 효과 활성화 및 설정 가능
+- **rain_effect_1**: 텍스트를 통과하는 이동하는 공백 (moving blanc)
+  - 단어가 `word` → `ord` → `w rd` → `wo d` → `wor` → `word` 처럼 변화
+  - 비 크기 (rain_size): 연속된 공백의 개수 (1-5)
+  - 비 빈도 (rain_frequency): 프레임당 열당 확률 (0.01-1.0, 높을수록 비가 많음)
+
 ## 기술 스택
 
 - **Python 3.11+** (3.12 권장)

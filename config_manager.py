@@ -26,6 +26,12 @@ class ConfigManager:
             "char_spacing": 2,
             "theme": "dark"
         },
+        "rain_effect": {
+            "enabled": False,
+            "type": "rain_effect_1",  # moving blanc effect
+            "rain_size": 1,  # number of consecutive blancs
+            "rain_frequency": 0.1  # probability per frame per column (0.0-1.0)
+        },
         "model": {
             "type": "blip",  # blip or blip2
             "use_gpu": "auto"  # auto, true, false
@@ -148,6 +154,33 @@ class ConfigManager:
             }
         )
         self.config["display"]["theme"] = theme
+
+        # Rain effect settings
+        print("\n🌧️  Rain Effect Settings")
+        print("-" * 60)
+
+        enable_rain = self._ask_bool(
+            "Enable rain effect (moving blanc through text)",
+            default=False
+        )
+        self.config["rain_effect"]["enabled"] = enable_rain
+
+        if enable_rain:
+            rain_size = self._ask_int(
+                "Rain size (number of consecutive blancs: 1-5)",
+                default=1,
+                min_val=1,
+                max_val=5
+            )
+            self.config["rain_effect"]["rain_size"] = rain_size
+
+            rain_frequency = self._ask_float(
+                "Rain frequency (0.01-1.0, higher = more rain)",
+                default=0.1,
+                min_val=0.01,
+                max_val=1.0
+            )
+            self.config["rain_effect"]["rain_frequency"] = rain_frequency
 
         # Model settings
         print("\n🤖 Model Settings")
