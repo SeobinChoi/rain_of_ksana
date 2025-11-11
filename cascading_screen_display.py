@@ -24,8 +24,8 @@ class CascadingScreenDisplay:
     """
 
     def __init__(self, screen_count: int = 1, config: Optional[dict] = None):
-        if not 1 <= screen_count <= 3:
-            raise ValueError("Screen count must be between 1 and 3")
+        if not 1 <= screen_count <= 7:
+            raise ValueError("Screen count must be between 1 and 7")
 
         self.screen_count = screen_count
         self.config = config or {}
