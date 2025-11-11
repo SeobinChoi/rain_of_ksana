@@ -4,10 +4,11 @@ torch>=2.0.0
 torchvision>=0.15.0
 torchaudio>=2.0.0
 
-# HuggingFace Transformers
+# HuggingFace Transformers (with offline caching support)
 transformers>=4.35.0
 accelerate>=0.24.0
-huggingface-hub>=0.16.0
+huggingface-hub>=0.19.0
+sentencepiece>=0.1.99
 
 # Image Processing
 opencv-python>=4.8.0,<5.0.0

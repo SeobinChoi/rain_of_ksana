@@ -90,7 +90,7 @@ class CameraManager:
         if caption:
             self.current_caption = caption
             font = cv2.FONT_HERSHEY_SIMPLEX
-            font_scale = 2
+            font_scale = 4
             thickness = 2
             color = (0, 200, 100)
             lines = caption.splitlines() or [caption]

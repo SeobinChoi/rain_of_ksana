@@ -6,9 +6,9 @@ display:
   char_spacing: 2
   column_width: 10
   font_path: assets/fonts/Acumin_Variable_Concept.ttf
-  font_size: 12
+  font_size: 24
   max_caption_length: 100
-  text_screen_count: 1
+  text_screen_count: 7
   truncate_long_captions: false
   typing_speed: 0.03
   window_height: 1440
@@ -29,4 +29,4 @@ ollama:
 timing:
   dual_interval_mode: false
   interval_long: 20
-  interval_short: 5
+  interval_short: 10

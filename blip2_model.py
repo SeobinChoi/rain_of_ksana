@@ -36,18 +36,30 @@ class BLIP2ModelManager:
         """Load BLIP-2 model and processor"""
         print(f"Loading {self.model_name}...")
         print(f"Using device: {self.device}")
-        
+
+        # Set cache directory for offline usage
+        cache_dir = os.path.join(os.path.dirname(__file__), "models_cache")
+        os.makedirs(cache_dir, exist_ok=True)
+
         try:
-            # Load processor (BLIP-2 uses different processor)
-            self.processor = Blip2Processor.from_pretrained(self.model_name)
-            
-            # Load model with appropriate settings for GPU acceleration
+            # Load processor (BLIP-2 uses different processor) with local caching
+            self.processor = Blip2Processor.from_pretrained(
+                self.model_name,
+                cache_dir=cache_dir,
+                local_files_only=False  # First time: download and cache, later: use cache
+            )
+
+            # Load model with appropriate settings for GPU acceleration and caching
             model_dtype = torch.float16 if self.device in ["mps", "cuda"] else torch.float32
             self.model = Blip2ForConditionalGeneration.from_pretrained(
                 self.model_name,
                 torch_dtype=model_dtype,
-                use_safetensors=True
+                use_safetensors=True,
+                cache_dir=cache_dir,
+                local_files_only=False  # First time: download and cache, later: use cache
             ).to(dtype=model_dtype)
+
+            print(f"Model cached at: {cache_dir}")
             
             # Move model to GPU if available
             if self.device == "cuda":

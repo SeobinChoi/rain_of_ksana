@@ -1,193 +1,241 @@
 #!/usr/bin/env python3
 """
-Multi-Screen Display Module
-Manages multiple text display screens (up to 3) with independent caption queues.
+Multi-Screen Display Module - Fixed Version
+Implements cascading overflow across screens (Screen 1 → 2 → 3)
+with proper typing animation and column wrapping.
 """
 
 import cv2
 import numpy as np
-from typing import List, Optional, Tuple
-from dual_screen_display import DualScreenDisplay, TypingAnimation
+import time
+from typing import List, Optional, Tuple, Dict
+from PIL import Image, ImageDraw, ImageFont
+from pathlib import Path
 
 
-class TextScreen:
-    """Single text display screen with independent caption management"""
-
-    def __init__(self, screen_index: int, config: dict):
-        self.screen_index = screen_index
-        self.config = config
-
-        # Window settings
-        self.window_width = config.get("window_width", 2560)
-        self.window_height = config.get("window_height", 1440)
-        self.font_size = config.get("font_size", 24)
-        self.font_path = config.get("font_path", "assets/fonts/Acumin_Variable_Concept.ttf")
-        self.typing_speed = config.get("typing_speed", 0.03)
-        self.column_width = config.get("column_width", 10)
-        self.char_spacing = config.get("char_spacing", 2)
-
-        # Window name
-        self.window_name = f"Text Screen {screen_index + 1}"
-
-        # Caption management
-        self.captions = []
-        self.max_captions = 200
-
-        # Animation
-        self.typing_animator = TypingAnimation(
-            typing_delay=int(self.typing_speed * 1000),
-            cursor_effect="blink"
-        )
-
-        # Display components (reuse DualScreenDisplay logic)
-        self._init_display()
-
-    def _init_display(self):
-        """Initialize display window"""
-        # Create window
-        cv2.namedWindow(self.window_name, cv2.WINDOW_NORMAL)
-        cv2.resizeWindow(self.window_name, self.window_width, self.window_height)
-
-        # Load font (simplified)
-        try:
-            from PIL import ImageFont
-            self.font = ImageFont.truetype(self.font_path, self.font_size)
-        except Exception:
-            self.font = None
-
-    def add_caption(self, caption: str):
-        """Add a new caption to this screen"""
-        if not caption or not caption.strip():
-            return
-
-        # Replace spaces with hyphens
-        formatted_caption = caption.replace(" ", "-")
-
-        # Add to captions list
-        self.captions.append(formatted_caption)
-
-        # Limit caption count
-        if len(self.captions) > self.max_captions:
-            self.captions.pop(0)
-
-        # Start typing animation
-        self.typing_animator.start_typing(formatted_caption)
-
-    def render(self) -> np.ndarray:
-        """Render the text screen"""
-        # Create black background
-        img = np.zeros((self.window_height, self.window_width, 3), dtype=np.uint8)
-
-        # Update animations
-        self.typing_animator.update_animations()
-
-        # Render captions (simplified vertical text layout)
-        from PIL import Image, ImageDraw
-
-        pil_img = Image.fromarray(img)
-        draw = ImageDraw.Draw(pil_img)
-
-        # Draw captions vertically from right to left
-        x_pos = self.window_width - 50
-        for caption in reversed(self.captions[-20:]):  # Show last 20 captions
-            y_pos = 50
-            for char in caption:
-                if self.font:
-                    draw.text((x_pos, y_pos), char, font=self.font, fill=(255, 255, 255))
-                    y_pos += self.font_size + self.char_spacing
-                else:
-                    # Fallback to cv2.putText
-                    cv2.putText(img, char, (x_pos, y_pos),
-                               cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 255), 2)
-                    y_pos += 30
-
-                if y_pos > self.window_height - 50:
-                    break
-
-            x_pos -= self.font_size + self.column_width
-            if x_pos < 50:
-                break
-
-        return np.array(pil_img)
-
-    def display(self):
-        """Display the text screen"""
-        frame = self.render()
-        cv2.imshow(self.window_name, frame)
-
-    def cleanup(self):
-        """Clean up resources"""
-        try:
-            cv2.destroyWindow(self.window_name)
-        except Exception:
-            pass
-
-
-class MultiScreenDisplay:
-    """Manages multiple text display screens"""
+class CascadingMultiScreenDisplay:
+    """
+    Manages 1-3 text screens as ONE continuous display.
+    When Screen 1 is full, overflow goes to Screen 2.
+    When Screen 2 is full, overflow goes to Screen 3.
+    All screens work together as a single continuous canvas.
+    """
 
     def __init__(self, screen_count: int = 1, config: Optional[dict] = None):
-        if not 1 <= screen_count <= 3:
-            raise ValueError("Screen count must be between 1 and 3")
+        if not 1 <= screen_count <= 7:
+            raise ValueError("Screen count must be between 1 and 7")
 
         self.screen_count = screen_count
         self.config = config or {}
 
         # Display configuration
-        self.display_config = self._build_display_config()
+        display_config = self.config.get("display", {})
+        self.window_width = display_config.get("window_width", 2560)
+        self.window_height = display_config.get("window_height", 1440)
+        self.font_size = display_config.get("font_size", 24)
+        self.font_path = display_config.get("font_path", "assets/fonts/Acumin_Variable_Concept.ttf")
+        self.typing_speed = display_config.get("typing_speed", 0.03)
+        self.column_width = display_config.get("column_width", 10)
+        self.char_spacing = display_config.get("char_spacing", 2)
+        self.theme = display_config.get("theme", "dark")
 
-        # Create screens
-        self.screens: List[TextScreen] = []
+        # Set theme colors
+        if self.theme == "white":
+            self.bg_color = (255, 255, 255)  # white background
+            self.text_color = (0, 0, 0)      # black text
+        else:  # default to dark theme
+            self.bg_color = (0, 0, 0)        # black background
+            self.text_color = (255, 255, 255) # white text
+
+        # Load font
+        self.font = self._load_font()
+
+        # Calculate layout
+        self.chars_per_column = self._calculate_chars_per_column()
+        self.columns_per_screen = self._calculate_columns_per_screen()
+
+        # All captions stored in order (oldest to newest)
+        self.all_captions = []
+
+        # Typing animation state for each caption
+        # {caption_index: {"full_text": str, "revealed_chars": int, "last_update": float}}
+        self.typing_states = {}
+
+        # Create windows
+        self.windows = []
         for i in range(screen_count):
-            screen_config = self.display_config.copy()
-            screen = TextScreen(i, screen_config)
-            self.screens.append(screen)
+            window_name = f"Screen {i + 1}"
+            cv2.namedWindow(window_name, cv2.WINDOW_NORMAL)
+            cv2.resizeWindow(window_name, self.window_width, self.window_height)
+            self.windows.append(window_name)
 
         # Camera window
         self.camera_window_name = "Camera Feed"
         self._camera_window_created = False
 
-        # Screen assignment strategy
-        self.current_screen_index = 0  # Round-robin assignment
+        print(f"✅ CascadingMultiScreenDisplay initialized:")
+        print(f"   Screens: {screen_count}")
+        print(f"   Chars per column: {self.chars_per_column}")
+        print(f"   Columns per screen: {self.columns_per_screen}")
+        print(f"   Total capacity: {self.chars_per_column * self.columns_per_screen * screen_count} chars")
 
-        print(f"✅ MultiScreenDisplay initialized with {screen_count} screen(s)")
+    def _load_font(self):
+        """Load custom font or fall back to default"""
+        try:
+            font_path = Path(self.font_path)
+            if font_path.exists():
+                return ImageFont.truetype(str(font_path), self.font_size)
+        except Exception as e:
+            print(f"⚠️  Could not load font {self.font_path}: {e}")
 
-    def _build_display_config(self) -> dict:
-        """Build display configuration from config"""
-        display_config = self.config.get("display", {})
+        # Fallback to default
+        try:
+            return ImageFont.load_default()
+        except:
+            return None
 
-        return {
-            "window_width": display_config.get("window_width", 2560),
-            "window_height": display_config.get("window_height", 1440),
-            "font_size": display_config.get("font_size", 24),
-            "font_path": display_config.get("font_path", "assets/fonts/Acumin_Variable_Concept.ttf"),
-            "typing_speed": display_config.get("typing_speed", 0.03),
-            "column_width": display_config.get("column_width", 10),
-            "char_spacing": display_config.get("char_spacing", 2)
+    def _calculate_chars_per_column(self) -> int:
+        """Calculate how many characters fit in one vertical column"""
+        available_height = self.window_height - 100  # Leave margins
+        char_height = self.font_size + self.char_spacing
+        return max(1, available_height // char_height)
+
+    def _calculate_columns_per_screen(self) -> int:
+        """Calculate how many columns fit in one screen"""
+        available_width = self.window_width - 100  # Leave margins
+        column_width = self.font_size + self.column_width
+        return max(1, available_width // column_width)
+
+    def add_caption(self, caption: str):
+        """Add a new caption to the continuous display"""
+        if not caption or not caption.strip():
+            return
+
+        # Replace spaces with hyphens for vertical display
+        formatted_caption = caption.replace(" ", "-")
+
+        # Add to caption list
+        self.all_captions.append(formatted_caption)
+
+        # Initialize typing animation for this caption
+        caption_index = len(self.all_captions) - 1
+        self.typing_states[caption_index] = {
+            "full_text": formatted_caption,
+            "revealed_chars": 0,
+            "last_update": time.time()
         }
 
-    def add_caption(self, caption: str, screen_index: Optional[int] = None):
-        """
-        Add a caption to a specific screen or distribute automatically
-
-        Args:
-            caption: Caption text to add
-            screen_index: Target screen index (None for automatic round-robin)
-        """
-        if screen_index is not None:
-            if 0 <= screen_index < self.screen_count:
-                self.screens[screen_index].add_caption(caption)
-            else:
-                print(f"⚠️  Invalid screen index {screen_index}")
-        else:
-            # Round-robin distribution
-            self.screens[self.current_screen_index].add_caption(caption)
-            self.current_screen_index = (self.current_screen_index + 1) % self.screen_count
+        print(f"📝 Added caption {caption_index + 1}: {formatted_caption[:30]}...")
 
     def add_summary(self, summary: str):
-        """Add a summary to all screens (for dual-interval mode)"""
-        for screen in self.screens:
-            screen.add_caption(summary)
+        """Add a summary (just adds as a caption)"""
+        self.add_caption(summary)
+
+    def update_typing_animations(self):
+        """Update typing animation for all active captions"""
+        current_time = time.time()
+
+        for caption_idx, state in list(self.typing_states.items()):
+            if caption_idx >= len(self.all_captions):
+                continue
+
+            full_text = state["full_text"]
+            revealed_chars = state["revealed_chars"]
+
+            # Check if this caption is finished
+            if revealed_chars >= len(full_text):
+                continue
+
+            # Check if enough time has passed to reveal next character
+            time_since_update = current_time - state["last_update"]
+            if time_since_update >= self.typing_speed:
+                # Reveal next character
+                state["revealed_chars"] += 1
+                state["last_update"] = current_time
+
+    def _get_displayed_captions(self) -> List[Tuple[int, str]]:
+        """
+        Get list of (caption_index, displayed_text) for captions to show.
+        Takes into account typing animation.
+        """
+        displayed = []
+
+        for idx, caption in enumerate(self.all_captions):
+            if idx in self.typing_states:
+                state = self.typing_states[idx]
+                revealed_chars = state["revealed_chars"]
+                displayed_text = caption[:revealed_chars]
+
+                # Add blinking cursor if still typing
+                if revealed_chars < len(caption):
+                    # Blink cursor effect
+                    if int(time.time() * 2) % 2 == 0:
+                        displayed_text += "█"
+            else:
+                # Fully displayed
+                displayed_text = caption
+
+            if displayed_text:  # Only add if there's something to show
+                displayed.append((idx, displayed_text))
+
+        return displayed
+
+    def _render_screen(self, screen_index: int) -> np.ndarray:
+        """Render a single screen with its portion of the continuous display"""
+        # Create background with theme color
+        img = Image.new('RGB', (self.window_width, self.window_height), color=self.bg_color)
+        draw = ImageDraw.Draw(img)
+
+        # Get all captions to display
+        displayed_captions = self._get_displayed_captions()
+
+        # Calculate total character count and which ones belong to this screen
+        total_capacity_per_screen = self.chars_per_column * self.columns_per_screen
+        screen_start_capacity = screen_index * total_capacity_per_screen
+        screen_end_capacity = (screen_index + 1) * total_capacity_per_screen
+
+        # Count characters from all captions
+        char_positions = []  # [(caption_idx, char_idx, char, global_pos)]
+        global_char_pos = 0
+
+        for caption_idx, caption_text in displayed_captions:
+            for char_idx, char in enumerate(caption_text):
+                char_positions.append((caption_idx, char_idx, char, global_char_pos))
+                global_char_pos += 1
+
+        # Determine which characters belong to this screen
+        screen_chars = [
+            cp for cp in char_positions
+            if screen_start_capacity <= cp[3] < screen_end_capacity
+        ]
+
+        # Draw characters on this screen
+        # Start from RIGHT side of screen, going left
+        x_pos = self.window_width - 50
+        current_column_chars = 0
+        y_pos = 50
+
+        for caption_idx, char_idx, char, global_pos in screen_chars:
+            # Calculate position within this screen
+            screen_relative_pos = global_pos - screen_start_capacity
+            column_in_screen = screen_relative_pos // self.chars_per_column
+            row_in_column = screen_relative_pos % self.chars_per_column
+
+            # Calculate actual x, y position
+            x = self.window_width - 50 - (column_in_screen * (self.font_size + self.column_width))
+            y = 50 + (row_in_column * (self.font_size + self.char_spacing))
+
+            # Draw character
+            if self.font:
+                draw.text((x, y), char, font=self.font, fill=self.text_color)
+
+        return np.array(img)
+
+    def update_all_screens(self):
+        """Update and display all screens"""
+        for screen_idx, window_name in enumerate(self.windows):
+            frame = self._render_screen(screen_idx)
+            cv2.imshow(window_name, frame)
 
     def display_camera_frame(self, frame: np.ndarray, current_caption: str = ""):
         """Display camera feed"""
@@ -196,25 +244,15 @@ class MultiScreenDisplay:
             cv2.resizeWindow(self.camera_window_name, 1280, 720)
             self._camera_window_created = True
 
-        # Resize frame if needed
+        # Resize frame
         display_frame = cv2.resize(frame, (1280, 720))
 
-        # Add current caption overlay
+        # Add caption overlay
         if current_caption:
-            cv2.putText(display_frame, current_caption, (10, 30),
+            cv2.putText(display_frame, current_caption[:50], (10, 30),
                        cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 0), 2)
 
         cv2.imshow(self.camera_window_name, display_frame)
-
-    def update_all_screens(self):
-        """Update and display all text screens"""
-        for screen in self.screens:
-            screen.display()
-
-    def update_typing_animations(self):
-        """Update typing animations for all screens"""
-        for screen in self.screens:
-            screen.typing_animator.update_animations()
 
     def check_for_quit(self) -> bool:
         """Check if user pressed 'q' to quit"""
@@ -222,90 +260,103 @@ class MultiScreenDisplay:
         return key == ord('q')
 
     def cleanup(self):
-        """Clean up all windows and resources"""
-        print("🧹 Cleaning up multi-screen display...")
+        """Clean up all windows"""
+        print("🧹 Cleaning up displays...")
 
-        # Clean up camera window
+        for window_name in self.windows:
+            try:
+                cv2.destroyWindow(window_name)
+            except:
+                pass
+
         if self._camera_window_created:
             try:
                 cv2.destroyWindow(self.camera_window_name)
-            except Exception:
+            except:
                 pass
-
-        # Clean up all text screens
-        for screen in self.screens:
-            screen.cleanup()
 
         cv2.destroyAllWindows()
         print("✅ Cleanup complete")
 
     def get_stats(self) -> dict:
-        """Get statistics for all screens"""
+        """Get statistics"""
+        total_chars = sum(len(cap) for cap in self.all_captions)
+        typing_active = sum(1 for state in self.typing_states.values()
+                           if state["revealed_chars"] < len(state["full_text"]))
+
         return {
             "screen_count": self.screen_count,
-            "screens": [
-                {
-                    "index": i,
-                    "caption_count": len(screen.captions)
-                }
-                for i, screen in enumerate(self.screens)
-            ]
+            "total_captions": len(self.all_captions),
+            "total_characters": total_chars,
+            "typing_active": typing_active,
+            "chars_per_column": self.chars_per_column,
+            "columns_per_screen": self.columns_per_screen
         }
 
-    def __str__(self):
-        """String representation"""
-        stats = self.get_stats()
-        screen_info = ", ".join([
-            f"Screen{s['index']+1}={s['caption_count']}"
-            for s in stats['screens']
-        ])
-        return f"MultiScreenDisplay({screen_info})"
+
+# Alias for compatibility
+MultiScreenDisplay = CascadingMultiScreenDisplay
 
 
 if __name__ == "__main__":
-    # Test multi-screen display
-    print("Testing MultiScreenDisplay...")
+    # Test the fixed display
+    print("Testing CascadingMultiScreenDisplay...")
 
-    # Create 3-screen display
-    display = MultiScreenDisplay(screen_count=3)
+    config = {
+        "display": {
+            "text_screen_count": 3,
+            "window_width": 1920,
+            "window_height": 1080,
+            "font_size": 48,
+            "font_path": "assets/fonts/Acumin_Variable_Concept.ttf",
+            "typing_speed": 0.05,
+            "column_width": 10,
+            "char_spacing": 2
+        }
+    }
 
-    # Test captions
+    display = CascadingMultiScreenDisplay(screen_count=3, config=config)
+
     test_captions = [
-        "a person sitting at desk",
-        "typing on laptop",
-        "drinking coffee",
-        "looking at screen",
-        "smiling",
-        "working on code",
-        "debugging",
-        "testing features"
+        "a person sitting at a desk with a laptop",
+        "typing on a keyboard while looking at the screen",
+        "a cup of coffee sitting on the table nearby",
+        "morning sunlight coming through the window",
+        "working on an important project",
+        "taking a short break to stretch",
+        "checking notifications on the phone",
+        "returning to work with renewed focus"
     ]
 
     try:
         for i, caption in enumerate(test_captions):
-            print(f"Adding caption {i+1}: {caption}")
-            display.add_caption(caption)  # Will distribute round-robin
+            print(f"\n➕ Adding caption {i+1}: {caption}")
+            display.add_caption(caption)
 
-            # Update display
-            display.update_all_screens()
-            display.update_typing_animations()
+            # Update display for a few seconds to show typing effect
+            for _ in range(100):  # ~3 seconds at 30fps
+                display.update_typing_animations()
+                display.update_all_screens()
 
-            # Check for quit
-            if display.check_for_quit():
-                break
+                if display.check_for_quit():
+                    break
 
-            import time
-            time.sleep(1)
+                time.sleep(0.03)
 
-        print(f"\nStats: {display.get_stats()}")
-        print("Press 'q' to quit...")
+        print("\n" + "="*60)
+        print("📊 Final Stats:")
+        stats = display.get_stats()
+        for key, value in stats.items():
+            print(f"  {key}: {value}")
+        print("="*60)
 
-        # Keep display running
+        print("\nPress 'q' to quit...")
         while True:
-            display.update_all_screens()
             display.update_typing_animations()
+            display.update_all_screens()
             if display.check_for_quit():
                 break
+            time.sleep(0.03)
 
     finally:
         display.cleanup()

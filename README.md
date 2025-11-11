@@ -33,25 +33,12 @@ source venv/bin/activate      # macOS/Linux
 pip install -r requirements.txt
 ```
 
-### 3. 기본 실행 (듀얼 스크린)
+### 3. 실행
 ```bash
-python main.py --dual-screen --interval 3
+python main_enhanced.py --interactive
+python main_enhanced.py --config config.yaml
 ```
 
-### 4. 실행 옵션
-```bash
-# BLIP-2 모델 사용 (더 정확하지만 느림)
-python main.py --dual-screen --blip2 --interval 5
-
-# 단일 카메라 창만 표시
-python main.py --show-camera --interval 3
-
-# 시스템 상태 확인
-python main.py --status
-
-# 카메라 목록 확인
-python main.py --list-cameras
-```
 
 ## 설정 조정
 
@@ -101,6 +88,11 @@ rain_of_ksana/
 ### 종료 방법
 - 화면에서 `q` 키 누르기
 - 터미널에서 `Ctrl+C` 누르기
+
+### 테마 설정
+- `--interactive` 모드에서 다크/라이트 테마 선택 가능
+- 다크 모드: 검은 배경, 흰 글자
+- 라이트 모드: 흰 배경, 검은 글자
 
 ## 기술 스택
 
