@@ -7,10 +7,10 @@ Main orchestrator for BLIP camera captioning system.
 import time
 import os
 from typing import Optional
-from blip_model import BLIPModelManager
-from blip2_model import BLIP2ModelManager
-from camera_manager import CameraManager
-from dual_screen_display import DualScreenDisplay
+from .blip_model import BLIPModelManager
+from .blip2_model import BLIP2ModelManager
+from .camera_manager import CameraManager
+from .dual_screen_display import DualScreenDisplay
 
 class CaptionEngine:
     """Main engine for BLIP camera captioning"""

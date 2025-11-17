@@ -8,7 +8,8 @@ display:
   font_path: assets/fonts/Acumin_Variable_Concept.ttf
   font_size: 24
   max_caption_length: 100
-  text_screen_count: 7
+  text_screen_count: 5
+  theme: white
   truncate_long_captions: false
   typing_speed: 0.03
   window_height: 1440
@@ -26,7 +27,12 @@ ollama:
 
     {captions}'
   timeout: 30
+rain_effect:
+  enabled: true
+  rain_frequency: 0.1
+  rain_size: 3
+  type: rain_effect_2
 timing:
   dual_interval_mode: false
   interval_long: 20
-  interval_short: 10
+  interval_short: 15

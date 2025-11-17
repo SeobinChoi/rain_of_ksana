@@ -170,12 +170,12 @@ def test_modules():
     print("=" * 60)
 
     modules = [
-        "config_manager",
-        "ollama_integration",
-        "caption_buffer",
-        "multi_screen_display",
-        "caption_engine_enhanced",
-        "main_enhanced",
+        "src.config_manager",
+        "src.ollama_integration",
+        "src.caption_buffer",
+        "src.multi_screen_display",
+        "src.caption_engine_enhanced",
+        "main",
     ]
 
     success = True
@@ -251,9 +251,9 @@ def main():
     if critical_passed:
         print("✅ System is ready to run!")
         print("\nQuick start:")
-        print("  python main_enhanced.py --interactive")
+        print("  python main.py --interactive")
         print("\nOr test with defaults:")
-        print("  python main_enhanced.py --show-camera")
+        print("  python main.py --show-camera")
     else:
         print("❌ System has critical issues - please fix errors above")
         sys.exit(1)

@@ -8,12 +8,12 @@ Supports multi-screen display, dual-interval mode, and Ollama integration.
 import time
 import os
 from typing import Optional, Dict, Any
-from blip_model import BLIPModelManager
-from blip2_model import BLIP2ModelManager
-from camera_manager import CameraManager
-from cascading_screen_display import CascadingScreenDisplay as MultiScreenDisplay
-from caption_buffer import CaptionBuffer, DualIntervalManager
-from ollama_integration import OllamaIntegration, create_ollama_from_config
+from .blip_model import BLIPModelManager
+from .blip2_model import BLIP2ModelManager
+from .camera_manager import CameraManager
+from .cascading_screen_display import CascadingScreenDisplay as MultiScreenDisplay
+from .caption_buffer import CaptionBuffer, DualIntervalManager
+from .ollama_integration import OllamaIntegration, create_ollama_from_config
 
 
 class CaptionEngineEnhanced:
@@ -344,7 +344,7 @@ CaptionEngine = CaptionEngineEnhanced
 
 if __name__ == "__main__":
     # Test with default config
-    from config_manager import ConfigManager
+    from .config_manager import ConfigManager
 
     print("Testing Enhanced Caption Engine...")
     config_manager = ConfigManager()

@@ -1,0 +1,59 @@
+version: '3.8'
+
+services:
+  blip-captioning:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: blip-captioning
+    image: blip-captioning:latest
+    
+    # GPU support (requires nvidia-docker2)
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    
+    # Camera access (Linux)
+    devices:
+      - /dev/video0:/dev/video0
+    
+    # Environment variables
+    environment:
+      - DISPLAY=${DISPLAY:-:0}
+      - NVIDIA_VISIBLE_DEVICES=all
+      - NVIDIA_DRIVER_CAPABILITIES=compute,utility
+    
+    # Volume mounts
+    volumes:
+      - ./config.yaml:/app/config.yaml:ro
+      - ./assets:/app/assets:ro
+      - /tmp/.X11-unix:/tmp/.X11-unix:ro
+    
+    # Network mode for Ollama (if running separately)
+    network_mode: host
+    
+    # Restart policy
+    restart: unless-stopped
+    
+    # Override command if needed
+    # command: ["python", "main.py", "--config", "config.yaml"]
+
+  # Optional: Ollama service (if you want to run Ollama in Docker)
+  ollama:
+    image: ollama/ollama:latest
+    container_name: ollama-service
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama-data:/root/.ollama
+    restart: unless-stopped
+    profiles:
+      - ollama
+
+volumes:
+  ollama-data:
+

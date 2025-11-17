@@ -35,7 +35,7 @@ pip install -r requirements.txt
 ### Method 1: Interactive Setup (Recommended)
 
 ```bash
-python main_enhanced.py --interactive
+python main.py --interactive
 ```
 
 Follow the prompts to configure:
@@ -53,17 +53,17 @@ Your settings will be saved to `config.yaml` for future use.
 
 **Single screen, standard mode:**
 ```bash
-python main_enhanced.py
+python main.py
 ```
 
 **Triple screen with BLIP-2:**
 ```bash
-python main_enhanced.py --screens 3 --blip2
+python main.py --screens 3 --blip2
 ```
 
 **With dual-interval mode and Ollama:**
 ```bash
-python main_enhanced.py --screens 2 --dual-interval
+python main.py --screens 2 --dual-interval
 ```
 
 ---
@@ -76,7 +76,7 @@ cp config.example.yaml config.yaml
 
 # Edit config.yaml to your preferences
 # Then run:
-python main_enhanced.py --config config.yaml
+python main.py --config config.yaml
 ```
 
 ---
@@ -110,7 +110,7 @@ python main_enhanced.py --config config.yaml
 
 ### Scenario 1: Basic Usage
 ```bash
-python main_enhanced.py --show-camera --interval 5
+python main.py --show-camera --interval 5
 ```
 - Single text screen
 - BLIP model
@@ -119,7 +119,7 @@ python main_enhanced.py --show-camera --interval 5
 
 ### Scenario 2: Multi-Screen Display
 ```bash
-python main_enhanced.py --screens 3 --camera 0
+python main.py --screens 3 --camera 0
 ```
 - 3 independent text screens
 - Round-robin caption distribution
@@ -127,7 +127,7 @@ python main_enhanced.py --screens 3 --camera 0
 
 ### Scenario 3: AI-Powered Summarization
 ```bash
-python main_enhanced.py --dual-interval --interval 3
+python main.py --dual-interval --interval 3
 ```
 - Short captions every 3 seconds
 - AI summary every 30 seconds (default)
@@ -135,7 +135,7 @@ python main_enhanced.py --dual-interval --interval 3
 
 ### Scenario 4: High-Accuracy Mode
 ```bash
-python main_enhanced.py --blip2 --screens 2 --interval 10
+python main.py --blip2 --screens 2 --interval 10
 ```
 - BLIP-2 model (better quality)
 - 2 text screens
@@ -192,19 +192,19 @@ ollama:
 ### Camera Not Found
 ```bash
 # List available cameras
-python main_enhanced.py --list-cameras
+python main.py --list-cameras
 
 # Try different camera index
-python main_enhanced.py --camera 1
+python main.py --camera 1
 
 # Try different backend (Windows)
-python main_enhanced.py --backend dshow
+python main.py --backend dshow
 ```
 
 ### Ollama Not Working
 ```bash
 # Test Ollama connection
-python main_enhanced.py --test-ollama
+python main.py --test-ollama
 
 # If test fails, check:
 # 1. Is Ollama installed? https://ollama.ai/download
@@ -264,16 +264,16 @@ Press `Ctrl+C` to see final statistics.
 
 ```bash
 # Show all options
-python main_enhanced.py --help
+python main.py --help
 
 # Check system status
-python main_enhanced.py --status
+python main.py --status
 
 # Test components
-python main_enhanced.py --test-ollama
-python main_enhanced.py --list-cameras
+python main.py --test-ollama
+python main.py --list-cameras
 ```
 
 ---
 
-**Ready to go!** Start with `python main_enhanced.py --interactive` 🚀
+**Ready to go!** Start with `python main.py --interactive` 🚀

@@ -43,19 +43,19 @@ See [QUICKSTART.md](QUICKSTART.md) for detailed setup instructions.
 pip install -r requirements.txt
 
 # Run interactive setup
-python main_enhanced.py --interactive
+python main.py --interactive
 ```
 
 ### Quick Examples
 ```bash
 # Single screen, standard mode
-python main_enhanced.py
+python main.py
 
 # Triple screen with BLIP-2
-python main_enhanced.py --screens 3 --blip2
+python main.py --screens 3 --blip2
 
 # With AI summarization
-python main_enhanced.py --dual-interval
+python main.py --dual-interval
 ```
 
 ---
@@ -91,7 +91,7 @@ Camera → BLIP Short Captions (every 3s)
 
 ### Interactive Setup
 ```bash
-python main_enhanced.py --interactive
+python main.py --interactive
 ```
 
 Guided configuration wizard for:
@@ -152,7 +152,7 @@ See [config.example.yaml](config.example.yaml) for full configuration options.
 
 ### Full Help
 ```bash
-python main_enhanced.py --help
+python main.py --help
 ```
 
 ---
@@ -182,7 +182,7 @@ requests
 
 ```
 rain_of_ksana/
-├── main_enhanced.py              # Enhanced main entry point
+├── main.py              # Enhanced main entry point
 ├── caption_engine_enhanced.py    # Enhanced caption engine
 ├── config_manager.py             # Configuration system
 ├── ollama_integration.py         # Ollama LLM integration
@@ -215,7 +215,7 @@ rain_of_ksana/
 
 ### Scenario 1: Basic Captioning
 ```bash
-python main_enhanced.py --show-camera --interval 5
+python main.py --show-camera --interval 5
 ```
 - Single screen
 - BLIP model
@@ -224,7 +224,7 @@ python main_enhanced.py --show-camera --interval 5
 
 ### Scenario 2: Multi-Screen Exhibition
 ```bash
-python main_enhanced.py --screens 3 --font-size 32
+python main.py --screens 3 --font-size 32
 ```
 - 3 text screens
 - Large font
@@ -233,7 +233,7 @@ python main_enhanced.py --screens 3 --font-size 32
 
 ### Scenario 3: AI-Enhanced Storytelling
 ```bash
-python main_enhanced.py --dual-interval --screens 2
+python main.py --dual-interval --screens 2
 ```
 - 2 text screens
 - Short captions every 3s
@@ -242,7 +242,7 @@ python main_enhanced.py --dual-interval --screens 2
 
 ### Scenario 4: High-Accuracy Mode
 ```bash
-python main_enhanced.py --blip2 --interval 10
+python main.py --blip2 --interval 10
 ```
 - BLIP-2 model (better quality)
 - Slower interval (10s)
@@ -255,19 +255,19 @@ python main_enhanced.py --blip2 --interval 10
 ### Camera Issues
 ```bash
 # List cameras
-python main_enhanced.py --list-cameras
+python main.py --list-cameras
 
 # Try different camera
-python main_enhanced.py --camera 1
+python main.py --camera 1
 
 # Try different backend (Windows)
-python main_enhanced.py --backend dshow
+python main.py --backend dshow
 ```
 
 ### Ollama Issues
 ```bash
 # Test connection
-python main_enhanced.py --test-ollama
+python main.py --test-ollama
 
 # If failed, install:
 # 1. Download: https://ollama.ai/download
@@ -310,13 +310,13 @@ python multi_screen_display.py
 ### System Tests
 ```bash
 # Full system status
-python main_enhanced.py --status
+python main.py --status
 
 # Test Ollama
-python main_enhanced.py --test-ollama
+python main.py --test-ollama
 
 # List cameras
-python main_enhanced.py --list-cameras
+python main.py --list-cameras
 ```
 
 ---
@@ -451,4 +451,4 @@ Contributions welcome! Please:
 
 ---
 
-**🚀 Ready to start? Run `python main_enhanced.py --interactive`**
+**🚀 Ready to start? Run `python main.py --interactive`**
